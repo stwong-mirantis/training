@@ -28,14 +28,14 @@ func NewUserService(ur user.UserRepository) *UserService {
 		Doc("get all users").
 		Writes([]user.User{}).Returns(http.StatusOK, "OK", []user.User{}).
 		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
-
-	us.Route(us.GET("/users/{username}").To(us.getUser).
-		Doc("get user by username"))
-
-	us.Route(us.POST("/login").To(us.loginUser).
-		Doc("login user"))
-
-	us.Route(us.DELETE("/logout").To(us.logoutUser).Doc("logout user"))
+	//
+	//us.Route(us.GET("/users/{username}").To(us.getUser).
+	//	Doc("get user by username"))
+	//
+	//us.Route(us.POST("/login").To(us.loginUser).
+	//	Doc("login user"))
+	//
+	//us.Route(us.DELETE("/logout").To(us.logoutUser).Doc("logout user"))
 
 	return &us
 }

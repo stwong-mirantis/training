@@ -2,7 +2,10 @@ module finalProject
 
 go 1.19
 
-require github.com/emicklei/go-restful/v3 v3.9.0
+require (
+	github.com/emicklei/go-restful/v3 v3.9.0
+	github.com/google/uuid v1.3.0
+)
 
 require (
 	github.com/json-iterator/go v1.1.12 // indirect

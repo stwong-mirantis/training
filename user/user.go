@@ -1,6 +1,9 @@
 package user
 
-import "errors"
+import (
+	"errors"
+	"github.com/google/uuid"
+)
 
 var (
 	ErrEmptyUsername        = errors.New("username cannot be empty")
@@ -9,6 +12,7 @@ var (
 )
 
 type User struct {
+	UUID         string
 	Username     string `json:"username"    description:"username of the user"`
 	OnlineStatus *bool  `json:"online"      description:"online status of the user"`
 }
@@ -16,8 +20,8 @@ type User struct {
 type UserRepository interface {
 	GetAllUsers() []User
 	GetUser(authToken string) (User, error)
-	AddUser(user User) (User, error)
-	RemoveUser(user User) (User, error)
+	AddUser(username string) (User, error)
+	RemoveUser(username string) (User, error)
 }
 
 type UserResource struct {
@@ -27,7 +31,9 @@ type UserResource struct {
 func (ur *UserResource) GetAllUsers() []User {
 	var userArr []User
 	for _, v := range ur.users {
-		userArr = append(userArr, v)
+		if *v.OnlineStatus {
+			userArr = append(userArr, v)
+		}
 	}
 	return userArr
 }
@@ -40,12 +46,33 @@ func (ur *UserResource) GetUser(id string) (User, error) {
 	return u, nil
 }
 
-func (ur *UserResource) AddUser(user User) (User, error) {
+func (ur *UserResource) AddUser(username string) (User, error) {
+	if len(username) == 0 {
+		return User{}, ErrEmptyUsername
+	}
+
+	for _, v := range ur.users {
+		if username == v.Username {
+			return User{}, ErrUsernameAlreadyInUse
+		}
+	}
+	id := uuid.New().String()
+	onlineStatus := new(bool)
+	*onlineStatus = true
+	newUser := User{id, username, onlineStatus}
+	ur.users[id] = newUser
+	return newUser, nil
 
 }
 
-func (ur *UserResource) RemoveUser(user User) (User, error) {
-
+func (ur *UserResource) RemoveUser(username string) (User, error) {
+	for k, v := range ur.users {
+		if v.Username == username {
+			delete(ur.users, k)
+			return v, nil
+		}
+	}
+	return User{}, ErrUsernameDoesNotExist
 }
 
 func NewUserResource() *UserResource {
