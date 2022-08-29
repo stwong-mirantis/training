@@ -5,9 +5,14 @@ import (
 	"finalProject/user"
 	"fmt"
 	"github.com/emicklei/go-restful/v3"
+	"io/ioutil"
 	"log"
 	"net/http"
 )
+
+type authToken struct {
+	token string
+}
 
 type UserService struct {
 	*restful.WebService
@@ -41,8 +46,33 @@ func NewUserService(ur user.UserRepository) *UserService {
 }
 
 func (us *UserService) getAllUsers(request *restful.Request, response *restful.Response) {
-	users := us.GetAllUsers()
+	reqBody, err := ioutil.ReadAll(request.Request.Body)
+	if err != nil {
+		err = fmt.Errorf("unable to access token: %w", err)
+		log.Println(err)
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+
+	reqBodyUnmarshal := authToken{}
+
+	if err = json.Unmarshal(reqBody, &reqBodyUnmarshal); err != nil {
+		err = fmt.Errorf("unable to unmarshal request body: %w", err)
+		log.Println(err)
+		response.WriteError(http.StatusBadRequest, err)
+		return
+	}
+
+	if !us.DoesAuthTokenExist(reqBodyUnmarshal.token) {
+		err = fmt.Errorf("auth token does not exist: %w", err)
+		log.Println(err)
+		response.WriteError(http.StatusForbidden, err)
+		return
+	}
+
+	users := us.GetAllOnlineUsers()
 	usersJSON, err := json.Marshal(users)
+
 	if err != nil {
 		err = fmt.Errorf("unable to marshal products: %w", err)
 		log.Println(err)
