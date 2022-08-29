@@ -10,8 +10,12 @@ import (
 	"net/http"
 )
 
-type authToken struct {
-	token string
+type AuthToken struct {
+	Token string `json:"token"`
+}
+
+type Username struct {
+	Username string `json:"username"`
 }
 
 type UserService struct {
@@ -33,40 +37,103 @@ func NewUserService(ur user.UserRepository) *UserService {
 		Doc("get all users").
 		Writes([]user.User{}).Returns(http.StatusOK, "OK", []user.User{}).
 		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
-	//
+
 	//us.Route(us.GET("/users/{username}").To(us.getUser).
 	//	Doc("get user by username"))
-	//
-	//us.Route(us.POST("/login").To(us.loginUser).
-	//	Doc("login user"))
+
+	us.Route(us.POST("/login").To(us.loginUser).
+		Doc("login user"))
 	//
 	//us.Route(us.DELETE("/logout").To(us.logoutUser).Doc("logout user"))
 
 	return &us
 }
 
-func (us *UserService) getAllUsers(request *restful.Request, response *restful.Response) {
+func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Response, us *UserService) bool {
 	reqBody, err := ioutil.ReadAll(request.Request.Body)
 	if err != nil {
-		err = fmt.Errorf("unable to access token: %w", err)
+		err = fmt.Errorf("unable to read request body: %w", err)
 		log.Println(err)
+		response.WriteError(http.StatusInternalServerError, err)
+		return false
+	}
+
+	reqBodyUnmarshal := AuthToken{}
+	err = json.Unmarshal(reqBody, &reqBodyUnmarshal)
+
+	if err != nil {
+		err = fmt.Errorf("unable to unmarshal request body: %w", err)
+		log.Println(err)
+		response.WriteError(http.StatusBadRequest, err)
+		return false
+	}
+
+	if len(reqBodyUnmarshal.Token) == 0 {
+		err = fmt.Errorf("auth token is not provided in request: %w", err)
+		log.Println(err)
+		response.WriteError(http.StatusUnauthorized, err)
+		return false
+	}
+
+	if !us.DoesAuthTokenExist(reqBodyUnmarshal.Token) {
+		err = fmt.Errorf("auth token does not exist: %w", err)
+		log.Println(err)
+		response.WriteError(http.StatusForbidden, err)
+		return false
+	}
+
+	return true
+}
+
+func (us *UserService) loginUser(request *restful.Request, response *restful.Response) {
+
+	reqBody, err := ioutil.ReadAll(request.Request.Body)
+
+	if err != nil {
+		err = fmt.Errorf("unable to read request body: %w", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
 
-	reqBodyUnmarshal := authToken{}
+	reqBodyUnmarshal := Username{}
 
-	if err = json.Unmarshal(reqBody, &reqBodyUnmarshal); err != nil {
+	err = json.Unmarshal(reqBody, &reqBodyUnmarshal)
+
+	if err != nil {
 		err = fmt.Errorf("unable to unmarshal request body: %w", err)
+
+		response.WriteError(http.StatusBadRequest, err)
+		return
+	}
+
+	user, err := us.AddUser(reqBodyUnmarshal.Username)
+
+	if err != nil {
+		err = fmt.Errorf("username is of inappropriate format or username already exists")
 		log.Println(err)
 		response.WriteError(http.StatusBadRequest, err)
 		return
 	}
 
-	if !us.DoesAuthTokenExist(reqBodyUnmarshal.token) {
-		err = fmt.Errorf("auth token does not exist: %w", err)
-		log.Println(err)
-		response.WriteError(http.StatusForbidden, err)
+	userJSON, err := json.Marshal(user.UUID)
+
+	if err != nil {
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+
+	response.Write(userJSON)
+
+}
+
+//func (us *UserService) getUser(request *restful.Request, response *restful.Response) {
+//	if !isRequestAndAuthTokenValid(request, response, us) {
+//		return
+//	}
+//}
+
+func (us *UserService) getAllUsers(request *restful.Request, response *restful.Response) {
+	if !isRequestAndAuthTokenValid(request, response, us) {
 		return
 	}
 
