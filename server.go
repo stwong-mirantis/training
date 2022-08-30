@@ -44,7 +44,8 @@ func NewUserService(ur user.UserRepository) *UserService {
 	us.Route(us.POST("/login").To(us.loginUser).
 		Doc("login user"))
 	//
-	//us.Route(us.DELETE("/logout").To(us.logoutUser).Doc("logout user"))
+	us.Route(us.DELETE("/logout").To(us.logoutUser).
+		Doc("logout user"))
 
 	return &us
 }
@@ -59,9 +60,8 @@ func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Resp
 	}
 
 	reqBodyUnmarshal := Authorization{}
-
 	err = json.Unmarshal(reqBody, &reqBodyUnmarshal)
-	
+
 	if err != nil {
 		err = fmt.Errorf("unable to unmarshal request body: %w", err)
 		log.Println(err)
@@ -84,6 +84,43 @@ func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Resp
 	}
 
 	return true
+}
+
+func (us *UserService) logoutUser(request *restful.Request, response *restful.Response) {
+
+	reqBody, err := ioutil.ReadAll(request.Request.Body)
+	if err != nil {
+		err = fmt.Errorf("unable to read request body: %w", err)
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+
+	reqBodyUnmarshal := Authorization{}
+	err = json.Unmarshal(reqBody, &reqBodyUnmarshal)
+	if err != nil {
+		err = fmt.Errorf("unable to unmarshal request body: %w", err)
+		log.Println(err)
+		response.WriteError(http.StatusBadRequest, err)
+		return
+	}
+
+	deletedUser, err := us.RemoveUser(reqBodyUnmarshal.Authorization)
+
+	if err != nil {
+		err = fmt.Errorf("unable to delete: %w", err)
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+
+	deletedUserJSON, err := json.Marshal(deletedUser)
+
+	if err != nil {
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+
+	response.Write(deletedUserJSON)
+
 }
 
 func (us *UserService) loginUser(request *restful.Request, response *restful.Response) {

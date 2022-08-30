@@ -22,7 +22,7 @@ type UserRepository interface {
 	GetAllOnlineUsers() []User
 	GetUser(authToken string) (User, error)
 	AddUser(username string) (User, error)
-	RemoveUser(username string) (User, error)
+	RemoveUser(authToken string) (User, error)
 }
 
 type UserResource struct {
@@ -73,12 +73,11 @@ func (ur *UserResource) AddUser(username string) (User, error) {
 
 }
 
-func (ur *UserResource) RemoveUser(username string) (User, error) {
-	for k, v := range ur.users {
-		if v.Username == username {
-			delete(ur.users, k)
-			return v, nil
-		}
+func (ur *UserResource) RemoveUser(authToken string) (User, error) {
+	if _, ok := ur.users[authToken]; ok {
+		deletedUser := ur.users[authToken]
+		delete(ur.users, authToken)
+		return deletedUser, nil
 	}
 	return User{}, ErrUsernameDoesNotExist
 }
