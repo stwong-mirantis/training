@@ -10,8 +10,8 @@ import (
 	"net/http"
 )
 
-type AuthToken struct {
-	Token string `json:"token"`
+type Authorization struct {
+	Authorization string `json:"authorization"`
 }
 
 type Username struct {
@@ -58,9 +58,10 @@ func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Resp
 		return false
 	}
 
-	reqBodyUnmarshal := AuthToken{}
-	err = json.Unmarshal(reqBody, &reqBodyUnmarshal)
+	reqBodyUnmarshal := Authorization{}
 
+	err = json.Unmarshal(reqBody, &reqBodyUnmarshal)
+	
 	if err != nil {
 		err = fmt.Errorf("unable to unmarshal request body: %w", err)
 		log.Println(err)
@@ -68,14 +69,14 @@ func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Resp
 		return false
 	}
 
-	if len(reqBodyUnmarshal.Token) == 0 {
+	if len(reqBodyUnmarshal.Authorization) == 0 {
 		err = fmt.Errorf("auth token is not provided in request: %w", err)
 		log.Println(err)
 		response.WriteError(http.StatusUnauthorized, err)
 		return false
 	}
 
-	if !us.DoesAuthTokenExist(reqBodyUnmarshal.Token) {
+	if !us.DoesAuthTokenExist(reqBodyUnmarshal.Authorization) {
 		err = fmt.Errorf("auth token does not exist: %w", err)
 		log.Println(err)
 		response.WriteError(http.StatusForbidden, err)
