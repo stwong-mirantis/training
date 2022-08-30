@@ -16,13 +16,17 @@ type User struct {
 	OnlineStatus *bool  `json:"online"      description:"online status of the user"`
 }
 
+type Message struct {
+	Message string `json:"message"`
+}
+
 type UserRepository interface {
 	DoesAuthTokenExist(authToken string) bool
 	GetAllOnlineUsers() []User
 	GetUserWithUsername(username string) (User, error)
 	GetUserWithToken(token string) User
 	AddUser(username string) (User, error)
-	RemoveUser(authToken string) (User, error)
+	RemoveUser(authToken string) (Message, error)
 }
 
 type UserResource struct {
@@ -75,13 +79,12 @@ func (ur *UserResource) AddUser(username string) (User, error) {
 
 }
 
-func (ur *UserResource) RemoveUser(authToken string) (User, error) {
+func (ur *UserResource) RemoveUser(authToken string) (Message, error) {
 	if _, ok := ur.users[authToken]; ok {
-		deletedUser := ur.users[authToken]
 		delete(ur.users, authToken)
-		return deletedUser, nil
+		return Message{Message: "bye!"}, nil
 	}
-	return User{}, ErrUsernameDoesNotExist
+	return Message{}, ErrUsernameDoesNotExist
 }
 
 func NewUserResource() *UserResource {

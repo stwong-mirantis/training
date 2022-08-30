@@ -158,7 +158,7 @@ func (ms *MessagingService) logoutUser(request *restful.Request, response *restf
 	}
 
 	token := request.Request.Header.Get("Authorization")
-	deletedUser, err := ms.RemoveUser(token)
+	message, err := ms.RemoveUser(token)
 
 	if err != nil {
 		err = fmt.Errorf("unable to delete: %w", err)
@@ -166,14 +166,14 @@ func (ms *MessagingService) logoutUser(request *restful.Request, response *restf
 		return
 	}
 
-	deletedUserJSON, err := json.Marshal(deletedUser)
+	messageJSON, err := json.Marshal(message)
 
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
 
-	response.Write(deletedUserJSON)
+	response.Write(messageJSON)
 
 }
 
