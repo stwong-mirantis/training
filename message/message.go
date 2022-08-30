@@ -28,11 +28,9 @@ func (mr *MessageResource) GetPaginatedMessages(count int, offset int) []Message
 	if count < 1 {
 		count = 10
 	}
-
 	if offset < 0 {
 		offset = 0
 	}
-
 	if offset > len(mr.messages) {
 		offset = len(mr.messages)
 	}

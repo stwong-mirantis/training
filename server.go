@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type Message struct {
@@ -50,9 +51,9 @@ func NewMessagingService(ur user.UserRepository, mr message.MessageRepository) *
 	ms.Route(ms.DELETE("/logout").To(ms.logoutUser).
 		Doc("logout user"))
 
-	//ms.Route(ms.GET("/messages").To(ms.getMessages).
-	//	Doc("get messages"))
-	//
+	ms.Route(ms.GET("/messages").To(ms.getMessages).
+		Doc("get messages"))
+
 	ms.Route(ms.POST("/messages").To(ms.createMessage).Doc("create message"))
 
 	return &ms
@@ -115,42 +116,41 @@ func (ms *MessagingService) createMessage(request *restful.Request, response *re
 
 }
 
-//
-//func (ms *MessagingService) getMessages(request *restful.Request, response *restful.Response) {
-//	if !isRequestAndAuthTokenValid(request, response, ms) {
-//		return
-//	}
-//
-//	countQueryStr := request.Request.URL.Query()["count"]
-//	offsetQueryStr := request.Request.URL.Query()["offset"]
-//	count := 10
-//	offset := 0
-//
-//	if len(countQueryStr) != 0 {
-//		countQueryConverted, err := strconv.Atoi(countQueryStr[0])
-//		if err == nil {
-//			count = countQueryConverted
-//		}
-//	}
-//
-//	if len(offsetQueryStr) != 0 {
-//		offsetQueryConverted, err := strconv.Atoi(offsetQueryStr[0])
-//		if err == nil {
-//			offset = offsetQueryConverted
-//		}
-//	}
-//
-//	messages := ms.GetPaginatedMessages(count, offset)
-//	messagesJSON, err := json.Marshal(messages)
-//	if err != nil {
-//		err = fmt.Errorf("unable to marshal messages: %w", err)
-//		log.Println(err)
-//		response.WriteError(http.StatusInternalServerError, err)
-//		return
-//	}
-//	response.Write(messagesJSON)
-//
-//}
+func (ms *MessagingService) getMessages(request *restful.Request, response *restful.Response) {
+	if !isRequestAndAuthTokenValid(request, response, ms) {
+		return
+	}
+
+	countQueryStr := request.Request.URL.Query()["count"]
+	offsetQueryStr := request.Request.URL.Query()["offset"]
+	count := 10
+	offset := 0
+
+	if len(countQueryStr) != 0 {
+		countQueryConverted, err := strconv.Atoi(countQueryStr[0])
+		if err == nil {
+			count = countQueryConverted
+		}
+	}
+
+	if len(offsetQueryStr) != 0 {
+		offsetQueryConverted, err := strconv.Atoi(offsetQueryStr[0])
+		if err == nil {
+			offset = offsetQueryConverted
+		}
+	}
+
+	messages := ms.GetPaginatedMessages(count, offset)
+	messagesJSON, err := json.Marshal(messages)
+	if err != nil {
+		err = fmt.Errorf("unable to marshal messages: %w", err)
+		log.Println(err)
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+	response.Write(messagesJSON)
+
+}
 
 func (ms *MessagingService) logoutUser(request *restful.Request, response *restful.Response) {
 	if !isRequestAndAuthTokenValid(request, response, ms) {
