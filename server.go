@@ -38,12 +38,12 @@ func NewUserService(ur user.UserRepository) *UserService {
 		Writes([]user.User{}).Returns(http.StatusOK, "OK", []user.User{}).
 		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
 
-	//us.Route(us.GET("/users/{username}").To(us.getUser).
-	//	Doc("get user by username"))
+	us.Route(us.GET("/users/{username}").To(us.getUser).
+		Doc("get user by username"))
 
 	us.Route(us.POST("/login").To(us.loginUser).
 		Doc("login user"))
-	//
+
 	us.Route(us.DELETE("/logout").To(us.logoutUser).
 		Doc("logout user"))
 
@@ -164,11 +164,28 @@ func (us *UserService) loginUser(request *restful.Request, response *restful.Res
 
 }
 
-//func (us *UserService) getUser(request *restful.Request, response *restful.Response) {
-//	if !isRequestAndAuthTokenValid(request, response, us) {
-//		return
-//	}
-//}
+func (us *UserService) getUser(request *restful.Request, response *restful.Response) {
+	if !isRequestAndAuthTokenValid(request, response, us) {
+		return
+	}
+	username := request.PathParameter("username")
+	user, err := us.GetUser(username)
+	if err != nil {
+		err = fmt.Errorf("unable to get user or user does not exist")
+		log.Println(err)
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+
+	userJSON, err := json.Marshal(user)
+	if err != nil {
+		err = fmt.Errorf("unable to marshal products: %w", err)
+		log.Println(err)
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+	response.Write(userJSON)
+}
 
 func (us *UserService) getAllUsers(request *restful.Request, response *restful.Response) {
 	if !isRequestAndAuthTokenValid(request, response, us) {

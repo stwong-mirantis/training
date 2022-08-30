@@ -46,12 +46,13 @@ func (ur *UserResource) GetAllOnlineUsers() []User {
 	return userArr
 }
 
-func (ur *UserResource) GetUser(id string) (User, error) {
-	u, ok := ur.users[id]
-	if !ok {
-		return User{}, ErrUsernameDoesNotExist
+func (ur *UserResource) GetUser(username string) (User, error) {
+	for _, v := range ur.users {
+		if v.Username == username {
+			return v, nil
+		}
 	}
-	return u, nil
+	return User{}, ErrUsernameDoesNotExist
 }
 
 func (ur *UserResource) AddUser(username string) (User, error) {
