@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"finalProject/message"
 	"finalProject/user"
 	"fmt"
 	"github.com/emicklei/go-restful/v3"
@@ -14,43 +15,54 @@ type Authorization struct {
 	Authorization string `json:"authorization"`
 }
 
+type Message struct {
+	Message string `json:"message"`
+}
+
 type Username struct {
 	Username string `json:"username"`
 }
 
-type UserService struct {
+type MessagingService struct {
 	*restful.WebService
 	user.UserRepository
+	message.MessageRepository
 }
 
-func NewUserService(ur user.UserRepository) *UserService {
-	us := UserService{
-		WebService:     &restful.WebService{},
-		UserRepository: ur,
+func NewMessagingService(ur user.UserRepository, mr message.MessageRepository) *MessagingService {
+	ms := MessagingService{
+		WebService:        &restful.WebService{},
+		UserRepository:    ur,
+		MessageRepository: mr,
 	}
 
-	us.Path("/").
+	ms.Path("/").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
-	us.Route(us.GET("/users").To(us.getAllUsers).
+	ms.Route(ms.GET("/users").To(ms.getAllUsers).
 		Doc("get all users").
 		Writes([]user.User{}).Returns(http.StatusOK, "OK", []user.User{}).
 		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
 
-	us.Route(us.GET("/users/{username}").To(us.getUser).
+	ms.Route(ms.GET("/users/{username}").To(ms.getUser).
 		Doc("get user by username"))
 
-	us.Route(us.POST("/login").To(us.loginUser).
+	ms.Route(ms.POST("/login").To(ms.loginUser).
 		Doc("login user"))
 
-	us.Route(us.DELETE("/logout").To(us.logoutUser).
+	ms.Route(ms.DELETE("/logout").To(ms.logoutUser).
 		Doc("logout user"))
 
-	return &us
+	//ms.Route(ms.GET("/messages").To(ms.getMessages).
+	//	Doc("get messages"))
+	//
+	//ms.Route(ms.POST("/messages").To(ms.createMessage).Doc("create message"))
+
+	return &ms
 }
 
-func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Response, us *UserService) bool {
+func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Response, ms *MessagingService) bool {
 	reqBody, err := ioutil.ReadAll(request.Request.Body)
 	if err != nil {
 		err = fmt.Errorf("unable to read request body: %w", err)
@@ -76,7 +88,7 @@ func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Resp
 		return false
 	}
 
-	if !us.DoesAuthTokenExist(reqBodyUnmarshal.Authorization) {
+	if !ms.DoesAuthTokenExist(reqBodyUnmarshal.Authorization) {
 		err = fmt.Errorf("auth token does not exist: %w", err)
 		log.Println(err)
 		response.WriteError(http.StatusForbidden, err)
@@ -86,7 +98,76 @@ func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Resp
 	return true
 }
 
-func (us *UserService) logoutUser(request *restful.Request, response *restful.Response) {
+//func (ms *MessagingService) createMessage(request *restful.Request, response *restful.Response) {
+//
+//	authTokenQueryStr := request.Request.URL.Query()["token"]
+//
+//	reqBody, err := ioutil.ReadAll(request.Request.Body)
+//	if err != nil {
+//		err = fmt.Errorf("unable to read request body: %w", err)
+//		response.WriteError(http.StatusInternalServerError, err)
+//		return
+//	}
+//
+//	reqBodyUnmarshal := Message{}
+//	err = json.Unmarshal(reqBody, &reqBodyUnmarshal)
+//	if err != nil {
+//		err = fmt.Errorf("unable to unmarshal request body: %w", err)
+//		log.Println(err)
+//		response.WriteError(http.StatusBadRequest, err)
+//		return
+//	}
+//
+//	message := ms.CreateMessage(reqBodyUnmarshal.Message, authTokenQueryStr[0])
+//
+//	messageJSON, err := json.Marshal(message)
+//	if err != nil {
+//		err = fmt.Errorf("unable to marshal message: %w", err)
+//		log.Println(err)
+//		response.WriteError(http.StatusInternalServerError, err)
+//		return
+//	}
+//	response.Write(messageJSON)
+//
+//}
+//
+//func (ms *MessagingService) getMessages(request *restful.Request, response *restful.Response) {
+//	if !isRequestAndAuthTokenValid(request, response, ms) {
+//		return
+//	}
+//
+//	countQueryStr := request.Request.URL.Query()["count"]
+//	offsetQueryStr := request.Request.URL.Query()["offset"]
+//	count := 10
+//	offset := 0
+//
+//	if len(countQueryStr) != 0 {
+//		countQueryConverted, err := strconv.Atoi(countQueryStr[0])
+//		if err == nil {
+//			count = countQueryConverted
+//		}
+//	}
+//
+//	if len(offsetQueryStr) != 0 {
+//		offsetQueryConverted, err := strconv.Atoi(offsetQueryStr[0])
+//		if err == nil {
+//			offset = offsetQueryConverted
+//		}
+//	}
+//
+//	messages := ms.GetPaginatedMessages(count, offset)
+//	messagesJSON, err := json.Marshal(messages)
+//	if err != nil {
+//		err = fmt.Errorf("unable to marshal messages: %w", err)
+//		log.Println(err)
+//		response.WriteError(http.StatusInternalServerError, err)
+//		return
+//	}
+//	response.Write(messagesJSON)
+//
+//}
+
+func (ms *MessagingService) logoutUser(request *restful.Request, response *restful.Response) {
 
 	reqBody, err := ioutil.ReadAll(request.Request.Body)
 	if err != nil {
@@ -104,7 +185,7 @@ func (us *UserService) logoutUser(request *restful.Request, response *restful.Re
 		return
 	}
 
-	deletedUser, err := us.RemoveUser(reqBodyUnmarshal.Authorization)
+	deletedUser, err := ms.RemoveUser(reqBodyUnmarshal.Authorization)
 
 	if err != nil {
 		err = fmt.Errorf("unable to delete: %w", err)
@@ -123,7 +204,7 @@ func (us *UserService) logoutUser(request *restful.Request, response *restful.Re
 
 }
 
-func (us *UserService) loginUser(request *restful.Request, response *restful.Response) {
+func (ms *MessagingService) loginUser(request *restful.Request, response *restful.Response) {
 
 	reqBody, err := ioutil.ReadAll(request.Request.Body)
 
@@ -144,7 +225,7 @@ func (us *UserService) loginUser(request *restful.Request, response *restful.Res
 		return
 	}
 
-	user, err := us.AddUser(reqBodyUnmarshal.Username)
+	user, err := ms.AddUser(reqBodyUnmarshal.Username)
 
 	if err != nil {
 		err = fmt.Errorf("username is of inappropriate format or username already exists")
@@ -164,12 +245,12 @@ func (us *UserService) loginUser(request *restful.Request, response *restful.Res
 
 }
 
-func (us *UserService) getUser(request *restful.Request, response *restful.Response) {
-	if !isRequestAndAuthTokenValid(request, response, us) {
+func (ms *MessagingService) getUser(request *restful.Request, response *restful.Response) {
+	if !isRequestAndAuthTokenValid(request, response, ms) {
 		return
 	}
 	username := request.PathParameter("username")
-	user, err := us.GetUser(username)
+	user, err := ms.GetUser(username)
 	if err != nil {
 		err = fmt.Errorf("unable to get user or user does not exist")
 		log.Println(err)
@@ -179,7 +260,7 @@ func (us *UserService) getUser(request *restful.Request, response *restful.Respo
 
 	userJSON, err := json.Marshal(user)
 	if err != nil {
-		err = fmt.Errorf("unable to marshal products: %w", err)
+		err = fmt.Errorf("unable to marshal user: %w", err)
 		log.Println(err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
@@ -187,16 +268,16 @@ func (us *UserService) getUser(request *restful.Request, response *restful.Respo
 	response.Write(userJSON)
 }
 
-func (us *UserService) getAllUsers(request *restful.Request, response *restful.Response) {
-	if !isRequestAndAuthTokenValid(request, response, us) {
+func (ms *MessagingService) getAllUsers(request *restful.Request, response *restful.Response) {
+	if !isRequestAndAuthTokenValid(request, response, ms) {
 		return
 	}
 
-	users := us.GetAllOnlineUsers()
+	users := ms.GetAllOnlineUsers()
 	usersJSON, err := json.Marshal(users)
 
 	if err != nil {
-		err = fmt.Errorf("unable to marshal products: %w", err)
+		err = fmt.Errorf("unable to marshal users: %w", err)
 		log.Println(err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
@@ -207,9 +288,10 @@ func (us *UserService) getAllUsers(request *restful.Request, response *restful.R
 func main() {
 
 	ur := user.NewUserResource()
-	us := NewUserService(ur)
+	mr := message.NewMessageResource()
+	messagingService := NewMessagingService(ur, mr)
 
-	restful.DefaultContainer.Add(us.WebService)
+	restful.DefaultContainer.Add(messagingService.WebService)
 
 	log.Printf("start listening on localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
