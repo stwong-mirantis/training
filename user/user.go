@@ -19,7 +19,8 @@ type User struct {
 type UserRepository interface {
 	DoesAuthTokenExist(authToken string) bool
 	GetAllOnlineUsers() []User
-	GetUser(authToken string) (User, error)
+	GetUserWithUsername(username string) (User, error)
+	GetUserWithToken(token string) User
 	AddUser(username string) (User, error)
 	RemoveUser(authToken string) (User, error)
 }
@@ -45,13 +46,17 @@ func (ur *UserResource) GetAllOnlineUsers() []User {
 	return userArr
 }
 
-func (ur *UserResource) GetUser(username string) (User, error) {
+func (ur *UserResource) GetUserWithUsername(username string) (User, error) {
 	for _, v := range ur.users {
 		if v.Username == username {
 			return v, nil
 		}
 	}
 	return User{}, ErrUsernameDoesNotExist
+}
+
+func (ur *UserResource) GetUserWithToken(token string) User {
+	return ur.users[token]
 }
 
 func (ur *UserResource) AddUser(username string) (User, error) {

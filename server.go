@@ -53,7 +53,7 @@ func NewMessagingService(ur user.UserRepository, mr message.MessageRepository) *
 	//ms.Route(ms.GET("/messages").To(ms.getMessages).
 	//	Doc("get messages"))
 	//
-	//ms.Route(ms.POST("/messages").To(ms.createMessage).Doc("create message"))
+	ms.Route(ms.POST("/messages").To(ms.createMessage).Doc("create message"))
 
 	return &ms
 }
@@ -78,38 +78,43 @@ func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Resp
 	return true
 }
 
-//func (ms *MessagingService) createMessage(request *restful.Request, response *restful.Response) {
-//
-//	authTokenQueryStr := request.Request.URL.Query()["token"]
-//
-//	reqBody, err := ioutil.ReadAll(request.Request.Body)
-//	if err != nil {
-//		err = fmt.Errorf("unable to read request body: %w", err)
-//		response.WriteError(http.StatusInternalServerError, err)
-//		return
-//	}
-//
-//	reqBodyUnmarshal := Message{}
-//	err = json.Unmarshal(reqBody, &reqBodyUnmarshal)
-//	if err != nil {
-//		err = fmt.Errorf("unable to unmarshal request body: %w", err)
-//		log.Println(err)
-//		response.WriteError(http.StatusBadRequest, err)
-//		return
-//	}
-//
-//	message := ms.CreateMessage(reqBodyUnmarshal.Message, authTokenQueryStr[0])
-//
-//	messageJSON, err := json.Marshal(message)
-//	if err != nil {
-//		err = fmt.Errorf("unable to marshal message: %w", err)
-//		log.Println(err)
-//		response.WriteError(http.StatusInternalServerError, err)
-//		return
-//	}
-//	response.Write(messageJSON)
-//
-//}
+func (ms *MessagingService) createMessage(request *restful.Request, response *restful.Response) {
+	if !isRequestAndAuthTokenValid(request, response, ms) {
+		return
+	}
+
+	token := request.Request.Header.Get("Authorization")
+	user := ms.GetUserWithToken(token)
+	reqBody, err := ioutil.ReadAll(request.Request.Body)
+
+	if err != nil {
+		err = fmt.Errorf("unable to read request body: %w", err)
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+
+	reqBodyUnmarshal := Message{}
+	err = json.Unmarshal(reqBody, &reqBodyUnmarshal)
+	if err != nil {
+		err = fmt.Errorf("unable to unmarshal request body: %w", err)
+		log.Println(err)
+		response.WriteError(http.StatusBadRequest, err)
+		return
+	}
+
+	message := ms.CreateMessage(reqBodyUnmarshal.Message, user.Username)
+
+	messageJSON, err := json.Marshal(message)
+	if err != nil {
+		err = fmt.Errorf("unable to marshal message: %w", err)
+		log.Println(err)
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+	response.Write(messageJSON)
+
+}
+
 //
 //func (ms *MessagingService) getMessages(request *restful.Request, response *restful.Response) {
 //	if !isRequestAndAuthTokenValid(request, response, ms) {
@@ -223,7 +228,7 @@ func (ms *MessagingService) getUser(request *restful.Request, response *restful.
 		return
 	}
 	username := request.PathParameter("username")
-	user, err := ms.GetUser(username)
+	user, err := ms.GetUserWithUsername(username)
 	if err != nil {
 		err = fmt.Errorf("unable to get user or user does not exist")
 		log.Println(err)
