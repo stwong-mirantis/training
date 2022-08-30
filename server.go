@@ -11,10 +11,6 @@ import (
 	"net/http"
 )
 
-type Authorization struct {
-	Authorization string `json:"authorization"`
-}
-
 type Message struct {
 	Message string `json:"message"`
 }
@@ -63,32 +59,16 @@ func NewMessagingService(ur user.UserRepository, mr message.MessageRepository) *
 }
 
 func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Response, ms *MessagingService) bool {
-	reqBody, err := ioutil.ReadAll(request.Request.Body)
-	if err != nil {
-		err = fmt.Errorf("unable to read request body: %w", err)
-		log.Println(err)
-		response.WriteError(http.StatusInternalServerError, err)
-		return false
-	}
-
-	reqBodyUnmarshal := Authorization{}
-	err = json.Unmarshal(reqBody, &reqBodyUnmarshal)
-
-	if err != nil {
-		err = fmt.Errorf("unable to unmarshal request body: %w", err)
-		log.Println(err)
-		response.WriteError(http.StatusBadRequest, err)
-		return false
-	}
-
-	if len(reqBodyUnmarshal.Authorization) == 0 {
+	token := request.Request.Header.Get("Authorization")
+	var err error
+	if token == "" {
 		err = fmt.Errorf("auth token is not provided in request: %w", err)
 		log.Println(err)
 		response.WriteError(http.StatusUnauthorized, err)
 		return false
 	}
 
-	if !ms.DoesAuthTokenExist(reqBodyUnmarshal.Authorization) {
+	if !ms.DoesAuthTokenExist(token) {
 		err = fmt.Errorf("auth token does not exist: %w", err)
 		log.Println(err)
 		response.WriteError(http.StatusForbidden, err)
@@ -168,24 +148,12 @@ func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Resp
 //}
 
 func (ms *MessagingService) logoutUser(request *restful.Request, response *restful.Response) {
-
-	reqBody, err := ioutil.ReadAll(request.Request.Body)
-	if err != nil {
-		err = fmt.Errorf("unable to read request body: %w", err)
-		response.WriteError(http.StatusInternalServerError, err)
+	if !isRequestAndAuthTokenValid(request, response, ms) {
 		return
 	}
 
-	reqBodyUnmarshal := Authorization{}
-	err = json.Unmarshal(reqBody, &reqBodyUnmarshal)
-	if err != nil {
-		err = fmt.Errorf("unable to unmarshal request body: %w", err)
-		log.Println(err)
-		response.WriteError(http.StatusBadRequest, err)
-		return
-	}
-
-	deletedUser, err := ms.RemoveUser(reqBodyUnmarshal.Authorization)
+	token := request.Request.Header.Get("Authorization")
+	deletedUser, err := ms.RemoveUser(token)
 
 	if err != nil {
 		err = fmt.Errorf("unable to delete: %w", err)
@@ -225,19 +193,24 @@ func (ms *MessagingService) loginUser(request *restful.Request, response *restfu
 		return
 	}
 
+	if len(reqBodyUnmarshal.Username) == 0 {
+		response.WriteError(http.StatusBadRequest, err)
+	}
+
 	user, err := ms.AddUser(reqBodyUnmarshal.Username)
 
 	if err != nil {
-		err = fmt.Errorf("username is of inappropriate format or username already exists")
+		err = fmt.Errorf("username is already in use")
 		log.Println(err)
-		response.WriteError(http.StatusBadRequest, err)
+		response.Header().Add("WWW-Authenticate", "Token realm='Username is already in use'")
+		response.WriteError(http.StatusUnauthorized, err)
 		return
 	}
 
 	userJSON, err := json.Marshal(user.UUID)
 
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, err)
+		response.WriteError(http.StatusBadRequest, err)
 		return
 	}
 

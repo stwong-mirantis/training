@@ -6,7 +6,6 @@ import (
 )
 
 var (
-	ErrEmptyUsername        = errors.New("username cannot be empty")
 	ErrUsernameAlreadyInUse = errors.New("username already exists")
 	ErrUsernameDoesNotExist = errors.New("cannot find username")
 )
@@ -56,9 +55,6 @@ func (ur *UserResource) GetUser(username string) (User, error) {
 }
 
 func (ur *UserResource) AddUser(username string) (User, error) {
-	if len(username) == 0 {
-		return User{}, ErrEmptyUsername
-	}
 
 	for _, v := range ur.users {
 		if username == v.Username {
