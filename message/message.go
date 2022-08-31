@@ -1,5 +1,7 @@
 package message
 
+import "fmt"
+
 type Message struct {
 	ID      string `json:"id"`
 	Message string `json:"message"`
@@ -16,7 +18,7 @@ type MessageResource struct {
 }
 
 func (mr *MessageResource) CreateMessage(messageContent string, author string) Message {
-	message := Message{ID: string(len(mr.messages)), Author: author, Message: messageContent}
+	message := Message{ID: fmt.Sprint(len(mr.messages)), Author: author, Message: messageContent}
 	mr.messages = append(mr.messages, message)
 	return message
 }
@@ -32,7 +34,7 @@ func (mr *MessageResource) GetPaginatedMessages(count int, offset int) []Message
 		offset = 0
 	}
 	if offset > len(mr.messages) {
-		offset = len(mr.messages)
+		offset = len(mr.messages) - 1
 	}
 	if offset+count > len(mr.messages) {
 		return mr.messages[offset:]
