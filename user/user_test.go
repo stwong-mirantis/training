@@ -21,6 +21,24 @@ func TestUserResource_RemoveUser(t *testing.T) {
 	require.Len(t, onlineUsersAfter, 0)
 }
 
+func TestUserResource_GetUserWithUsername(t *testing.T) {
+	ur := NewUserResource()
+	username := "julip"
+	user, err := ur.AddUser(username)
+	require.NoError(t, err)
+	user2, err := ur.GetUserWithUsername(user.Username)
+	require.NoError(t, err)
+	assert.Equal(t, user2, user)
+}
+
+func TestUserResource_GetUserWithToken(t *testing.T) {
+	ur := NewUserResource()
+	username := "julip"
+	user, err := ur.AddUser(username)
+	require.NoError(t, err)
+	assert.Equal(t, ur.GetUserWithToken(user.UUID), user)
+}
+
 func TestUserResource_AddUser(t *testing.T) {
 	ur := NewUserResource()
 	onlineUsersBefore := ur.GetAllOnlineUsers()
