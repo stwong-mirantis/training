@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"github.com/google/uuid"
+	"time"
 )
 
 var (
@@ -12,8 +13,9 @@ var (
 
 type User struct {
 	UUID         string
-	Username     string `json:"username"    description:"username of the user"`
-	OnlineStatus *bool  `json:"online"      description:"online status of the user"`
+	Username     string    `json:"username"    description:"username of the user"`
+	OnlineStatus *bool     `json:"online"      description:"online status of the user"`
+	LastSeenTime time.Time `json:"lastSeen"      description:"when the user was last seen"`
 }
 
 type Message struct {
@@ -21,6 +23,7 @@ type Message struct {
 }
 
 type UserRepository interface {
+	UpdateUserLastSeenTime(authToken string)
 	DoesAuthTokenExist(authToken string) bool
 	GetAllOnlineUsers() []User
 	GetUserWithUsername(username string) (User, error)
@@ -31,6 +34,12 @@ type UserRepository interface {
 
 type UserResource struct {
 	users map[string]User
+}
+
+func (ur *UserResource) UpdateUserLastSeenTime(authToken string) {
+	userUpdated := ur.users[authToken]
+	userUpdated.LastSeenTime = time.Now()
+	ur.users[authToken] = userUpdated
 }
 
 func (ur *UserResource) DoesAuthTokenExist(authToken string) bool {
@@ -73,7 +82,7 @@ func (ur *UserResource) AddUser(username string) (User, error) {
 	id := uuid.New().String()
 	onlineStatus := new(bool)
 	*onlineStatus = true
-	newUser := User{id, username, onlineStatus}
+	newUser := User{id, username, onlineStatus, time.Now()}
 	ur.users[id] = newUser
 	return newUser, nil
 
