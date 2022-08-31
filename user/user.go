@@ -23,6 +23,7 @@ type Message struct {
 }
 
 type UserRepository interface {
+	SetUserOnlineStatus(onlineStatus *bool, authToken string)
 	UpdateUserLastSeenTime(authToken string)
 	DoesAuthTokenExist(authToken string) bool
 	GetAllOnlineUsers() []User
@@ -30,10 +31,22 @@ type UserRepository interface {
 	GetUserWithToken(token string) User
 	AddUser(username string) (User, error)
 	RemoveUser(authToken string) (Message, error)
+	GetAllUsers() []User
+	GetUserMap() map[string]User
 }
 
 type UserResource struct {
 	users map[string]User
+}
+
+func (ur *UserResource) GetUserMap() map[string]User {
+	return ur.users
+}
+
+func (ur *UserResource) SetUserOnlineStatus(onlineStatus *bool, authToken string) {
+	userUpdated := ur.users[authToken]
+	userUpdated.OnlineStatus = onlineStatus
+	ur.users[authToken] = userUpdated
 }
 
 func (ur *UserResource) UpdateUserLastSeenTime(authToken string) {
@@ -50,11 +63,20 @@ func (ur *UserResource) DoesAuthTokenExist(authToken string) bool {
 }
 
 func (ur *UserResource) GetAllOnlineUsers() []User {
-	var userArr []User
+
+	userArr := make([]User, 0)
 	for _, v := range ur.users {
-		if *v.OnlineStatus {
+		if v.OnlineStatus != nil && *v.OnlineStatus {
 			userArr = append(userArr, v)
 		}
+	}
+	return userArr
+}
+
+func (ur *UserResource) GetAllUsers() []User {
+	var userArr []User
+	for _, v := range ur.users {
+		userArr = append(userArr, v)
 	}
 	return userArr
 }

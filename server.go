@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type Message struct {
@@ -62,6 +63,7 @@ func NewMessagingService(ur user.UserRepository, mr message.MessageRepository) *
 func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Response, ms *MessagingService) bool {
 	token := request.Request.Header.Get("Authorization")
 	var err error
+
 	if token == "" {
 		err = fmt.Errorf("auth token is not provided in request: %w", err)
 		log.Println(err)
@@ -85,7 +87,9 @@ func (ms *MessagingService) createMessage(request *restful.Request, response *re
 	}
 
 	token := request.Request.Header.Get("Authorization")
-	ms.UpdateUserLastSeenTime(token)
+	//ms.UpdateUserLastSeenTime(token)
+	//onlineStatus := true
+	//ms.SetUserOnlineStatus(&onlineStatus, token)
 	user := ms.GetUserWithToken(token)
 	reqBody, err := ioutil.ReadAll(request.Request.Body)
 
@@ -97,6 +101,7 @@ func (ms *MessagingService) createMessage(request *restful.Request, response *re
 
 	reqBodyUnmarshal := Message{}
 	err = json.Unmarshal(reqBody, &reqBodyUnmarshal)
+
 	if err != nil {
 		err = fmt.Errorf("unable to unmarshal request body: %w", err)
 		log.Println(err)
@@ -105,24 +110,27 @@ func (ms *MessagingService) createMessage(request *restful.Request, response *re
 	}
 
 	message := ms.CreateMessage(reqBodyUnmarshal.Message, user.Username)
-
 	messageJSON, err := json.Marshal(message)
+
 	if err != nil {
 		err = fmt.Errorf("unable to marshal message: %w", err)
 		log.Println(err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
-	response.Write(messageJSON)
 
+	response.Write(messageJSON)
 }
 
 func (ms *MessagingService) getMessages(request *restful.Request, response *restful.Response) {
 	if !isRequestAndAuthTokenValid(request, response, ms) {
 		return
 	}
-	token := request.Request.Header.Get("Authorization")
-	ms.UpdateUserLastSeenTime(token)
+
+	//token := request.Request.Header.Get("Authorization")
+	//ms.UpdateUserLastSeenTime(token)
+	//onlineStatus := true
+	//ms.SetUserOnlineStatus(&onlineStatus, token)
 	countQueryStr := request.Request.URL.Query()["count"]
 	offsetQueryStr := request.Request.URL.Query()["offset"]
 	count := 10
@@ -144,14 +152,15 @@ func (ms *MessagingService) getMessages(request *restful.Request, response *rest
 
 	messages := ms.GetPaginatedMessages(count, offset)
 	messagesJSON, err := json.Marshal(messages)
+
 	if err != nil {
 		err = fmt.Errorf("unable to marshal messages: %w", err)
 		log.Println(err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
-	response.Write(messagesJSON)
 
+	response.Write(messagesJSON)
 }
 
 func (ms *MessagingService) logoutUser(request *restful.Request, response *restful.Response) {
@@ -176,7 +185,6 @@ func (ms *MessagingService) logoutUser(request *restful.Request, response *restf
 	}
 
 	response.Write(messageJSON)
-
 }
 
 func (ms *MessagingService) loginUser(request *restful.Request, response *restful.Response) {
@@ -190,12 +198,10 @@ func (ms *MessagingService) loginUser(request *restful.Request, response *restfu
 	}
 
 	reqBodyUnmarshal := Username{}
-
 	err = json.Unmarshal(reqBody, &reqBodyUnmarshal)
 
 	if err != nil {
 		err = fmt.Errorf("unable to unmarshal request body: %w", err)
-
 		response.WriteError(http.StatusBadRequest, err)
 		return
 	}
@@ -222,17 +228,20 @@ func (ms *MessagingService) loginUser(request *restful.Request, response *restfu
 	}
 
 	response.Write(userJSON)
-
 }
 
 func (ms *MessagingService) getUser(request *restful.Request, response *restful.Response) {
 	if !isRequestAndAuthTokenValid(request, response, ms) {
 		return
 	}
-	token := request.Request.Header.Get("Authorization")
-	ms.UpdateUserLastSeenTime(token)
+
+	//token := request.Request.Header.Get("Authorization")
+	//ms.UpdateUserLastSeenTime(token)
+	//onlineStatus := true
+	//ms.SetUserOnlineStatus(&onlineStatus, token)
 	username := request.PathParameter("username")
 	user, err := ms.GetUserWithUsername(username)
+
 	if err != nil {
 		err = fmt.Errorf("unable to get user or user does not exist")
 		log.Println(err)
@@ -241,12 +250,14 @@ func (ms *MessagingService) getUser(request *restful.Request, response *restful.
 	}
 
 	userJSON, err := json.Marshal(user)
+
 	if err != nil {
 		err = fmt.Errorf("unable to marshal user: %w", err)
 		log.Println(err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
+
 	response.Write(userJSON)
 }
 
@@ -254,8 +265,10 @@ func (ms *MessagingService) getAllUsers(request *restful.Request, response *rest
 	if !isRequestAndAuthTokenValid(request, response, ms) {
 		return
 	}
-	token := request.Request.Header.Get("Authorization")
-	ms.UpdateUserLastSeenTime(token)
+	//token := request.Request.Header.Get("Authorization")
+	//ms.UpdateUserLastSeenTime(token)
+	//onlineStatus := true
+	//ms.SetUserOnlineStatus(&onlineStatus, token)
 	users := ms.GetAllOnlineUsers()
 	usersJSON, err := json.Marshal(users)
 
@@ -265,17 +278,32 @@ func (ms *MessagingService) getAllUsers(request *restful.Request, response *rest
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
+
 	response.Write(usersJSON)
 }
 
-func main() {
+func closeSessionForInactiveUsers(ur user.UserRepository) {
+	for {
+		usersMap := ur.GetUserMap()
+		currentTime := time.Now().Unix()
 
+		for k, v := range usersMap {
+			if currentTime-v.LastSeenTime.Unix() > 10 && v.OnlineStatus != nil {
+				fmt.Println("inside the inner loop!")
+				userUpdated := v
+				userUpdated.OnlineStatus = nil
+				usersMap[k] = userUpdated
+			}
+		}
+	}
+}
+
+func main() {
 	ur := user.NewUserResource()
 	mr := message.NewMessageResource()
 	messagingService := NewMessagingService(ur, mr)
-
 	restful.DefaultContainer.Add(messagingService.WebService)
-
+	go closeSessionForInactiveUsers(ur)
 	log.Printf("start listening on localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
