@@ -2,6 +2,7 @@ package user
 
 import (
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"sync"
 	"time"
@@ -67,6 +68,7 @@ func (ur *UserResource) UpdateUserLastSeenTime(authToken string) {
 }
 
 func (ur *UserResource) DoesAuthTokenExist(authToken string) bool {
+	fmt.Println("locking mutex in DoesAuthTokenExist ...")
 	ur.mu.Lock()
 	defer ur.mu.Unlock()
 	if _, ok := ur.users[authToken]; ok {
