@@ -52,11 +52,14 @@ func (ur *UserResource) GetMutex() *sync.Mutex {
 }
 
 func (ur *UserResource) SetUserOnlineStatus(onlineStatus *bool, authToken string) {
+	fmt.Println("Before lock in SetUserOnlineStatus ...")
 	ur.mu.Lock()
+	fmt.Println("Lock in SetUserOnlineStatus")
 	userUpdated := ur.users[authToken]
 	userUpdated.OnlineStatus = onlineStatus
 	ur.users[authToken] = userUpdated
 	ur.mu.Unlock()
+	fmt.Println("Unlock in SetUserOnlineStatus")
 }
 
 func (ur *UserResource) UpdateUserLastSeenTime(authToken string) {
@@ -68,10 +71,13 @@ func (ur *UserResource) UpdateUserLastSeenTime(authToken string) {
 }
 
 func (ur *UserResource) DoesAuthTokenExist(authToken string) bool {
-	fmt.Println("locking mutex in DoesAuthTokenExist ...")
+	fmt.Println("Before lock in DoesAuthTokenExist ...")
 	ur.mu.Lock()
-	defer ur.mu.Unlock()
-	if _, ok := ur.users[authToken]; ok {
+	fmt.Println("Locked mutex in DoesAuthTokenExist ...")
+	_, ok := ur.users[authToken]
+	ur.mu.Unlock()
+	fmt.Println("Unlocked mutex in DoesAuthTokenExist ...")
+	if ok {
 		return true
 	}
 	return false
@@ -112,8 +118,9 @@ func (ur *UserResource) GetUserWithUsername(username string) (User, error) {
 
 func (ur *UserResource) GetUserWithToken(token string) User {
 	ur.mu.Lock()
-	defer ur.mu.Unlock()
-	return ur.users[token]
+	user := ur.users[token]
+	ur.mu.Unlock()
+	return user
 }
 
 func (ur *UserResource) AddUser(username string) (User, error) {

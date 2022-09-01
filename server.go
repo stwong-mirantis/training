@@ -70,15 +70,14 @@ func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Resp
 		response.WriteError(http.StatusUnauthorized, err)
 		return false
 	}
-	fmt.Println("Before potential deadlock #0")
+	fmt.Println("Inside isRequestAndAuthTokenValid")
 	if !ms.DoesAuthTokenExist(token) {
-		fmt.Println("After deadlock #0")
 		err = fmt.Errorf("auth token does not exist: %w", err)
 		log.Println(err)
 		response.WriteError(http.StatusForbidden, err)
 		return false
 	}
-	fmt.Println("After deadlock #0")
+
 	return true
 }
 
@@ -268,13 +267,9 @@ func (ms *MessagingService) getAllUsers(request *restful.Request, response *rest
 		return
 	}
 	token := request.Request.Header.Get("Authorization")
-	fmt.Println("Before potential deadlock #1 :)")
 	ms.UpdateUserLastSeenTime(token)
-	fmt.Println("After deadlock #1")
 	onlineStatus := true
-	fmt.Println("Before potential deadlock #2 :)")
 	ms.SetUserOnlineStatus(&onlineStatus, token)
-	fmt.Println("After potential deadlock #2 :)")
 	users := ms.GetAllOnlineUsers()
 	usersJSON, err := json.Marshal(users)
 
@@ -294,16 +289,13 @@ func closeSessionForInactiveUsers(ur user.UserRepository) {
 		usersMap := ur.GetUserMap()
 		currentTime := time.Now().Unix()
 		mu.Lock()
-		fmt.Println("locked mutex in closeSessionForInactiveUsers function")
 		for k, v := range usersMap { // here
 			if currentTime-v.LastSeenTime.Unix() > 10 && v.OnlineStatus != nil {
 				fmt.Println("inside the inner loop!")
 				ur.SetUserOnlineStatus(nil, k)
-				fmt.Println("never goes here since locked??")
 			}
 		}
 		mu.Unlock()
-		fmt.Println("Unlocked mutex in closeSessionForInactiveUsers function")
 	}
 	time.Sleep(10 * time.Second)
 }
