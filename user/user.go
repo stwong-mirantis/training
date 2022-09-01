@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"github.com/google/uuid"
+	"sync"
 	"time"
 )
 
@@ -37,6 +38,7 @@ type UserRepository interface {
 
 type UserResource struct {
 	users map[string]User
+	mu    sync.Mutex
 }
 
 func (ur *UserResource) GetUserMap() map[string]User {
@@ -44,18 +46,24 @@ func (ur *UserResource) GetUserMap() map[string]User {
 }
 
 func (ur *UserResource) SetUserOnlineStatus(onlineStatus *bool, authToken string) {
+	ur.mu.Lock()
 	userUpdated := ur.users[authToken]
 	userUpdated.OnlineStatus = onlineStatus
 	ur.users[authToken] = userUpdated
+	ur.mu.Unlock()
 }
 
 func (ur *UserResource) UpdateUserLastSeenTime(authToken string) {
+	ur.mu.Lock()
 	userUpdated := ur.users[authToken]
 	userUpdated.LastSeenTime = time.Now()
 	ur.users[authToken] = userUpdated
+	ur.mu.Unlock()
 }
 
 func (ur *UserResource) DoesAuthTokenExist(authToken string) bool {
+	ur.mu.Lock()
+	defer ur.mu.Unlock()
 	if _, ok := ur.users[authToken]; ok {
 		return true
 	}
@@ -63,44 +71,52 @@ func (ur *UserResource) DoesAuthTokenExist(authToken string) bool {
 }
 
 func (ur *UserResource) GetAllOnlineUsers() []User {
-
+	ur.mu.Lock()
 	userArr := make([]User, 0)
 	for _, v := range ur.users {
 		if v.OnlineStatus != nil && *v.OnlineStatus {
 			userArr = append(userArr, v)
 		}
 	}
+	ur.mu.Unlock()
 	return userArr
 }
 
 func (ur *UserResource) GetAllUsers() []User {
+	ur.mu.Lock()
 	var userArr []User
 	for _, v := range ur.users {
 		userArr = append(userArr, v)
 	}
+	ur.mu.Unlock()
 	return userArr
 }
 
 func (ur *UserResource) GetUserWithUsername(username string) (User, error) {
+	ur.mu.Lock()
 	for _, v := range ur.users {
 		if v.Username == username {
 			return v, nil
 		}
 	}
+	ur.mu.Unlock()
 	return User{}, ErrUsernameDoesNotExist
 }
 
 func (ur *UserResource) GetUserWithToken(token string) User {
+	ur.mu.Lock()
+	defer ur.mu.Unlock()
 	return ur.users[token]
 }
 
 func (ur *UserResource) AddUser(username string) (User, error) {
-
+	ur.mu.Lock()
 	for _, v := range ur.users {
 		if username == v.Username {
 			return User{}, ErrUsernameAlreadyInUse
 		}
 	}
+	ur.mu.Unlock()
 	id := uuid.New().String()
 	onlineStatus := new(bool)
 	*onlineStatus = true
@@ -111,10 +127,12 @@ func (ur *UserResource) AddUser(username string) (User, error) {
 }
 
 func (ur *UserResource) RemoveUser(authToken string) (Message, error) {
+	ur.mu.Lock()
 	if _, ok := ur.users[authToken]; ok {
 		delete(ur.users, authToken)
 		return Message{Message: "bye!"}, nil
 	}
+	ur.mu.Unlock()
 	return Message{}, ErrUsernameDoesNotExist
 }
 

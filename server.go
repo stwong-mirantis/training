@@ -87,9 +87,9 @@ func (ms *MessagingService) createMessage(request *restful.Request, response *re
 	}
 
 	token := request.Request.Header.Get("Authorization")
-	//ms.UpdateUserLastSeenTime(token)
-	//onlineStatus := true
-	//ms.SetUserOnlineStatus(&onlineStatus, token)
+	ms.UpdateUserLastSeenTime(token)
+	onlineStatus := true
+	ms.SetUserOnlineStatus(&onlineStatus, token)
 	user := ms.GetUserWithToken(token)
 	reqBody, err := ioutil.ReadAll(request.Request.Body)
 
@@ -127,10 +127,10 @@ func (ms *MessagingService) getMessages(request *restful.Request, response *rest
 		return
 	}
 
-	//token := request.Request.Header.Get("Authorization")
-	//ms.UpdateUserLastSeenTime(token)
-	//onlineStatus := true
-	//ms.SetUserOnlineStatus(&onlineStatus, token)
+	token := request.Request.Header.Get("Authorization")
+	ms.UpdateUserLastSeenTime(token)
+	onlineStatus := true
+	ms.SetUserOnlineStatus(&onlineStatus, token)
 	countQueryStr := request.Request.URL.Query()["count"]
 	offsetQueryStr := request.Request.URL.Query()["offset"]
 	count := 10
@@ -235,10 +235,10 @@ func (ms *MessagingService) getUser(request *restful.Request, response *restful.
 		return
 	}
 
-	//token := request.Request.Header.Get("Authorization")
-	//ms.UpdateUserLastSeenTime(token)
-	//onlineStatus := true
-	//ms.SetUserOnlineStatus(&onlineStatus, token)
+	token := request.Request.Header.Get("Authorization")
+	ms.UpdateUserLastSeenTime(token)
+	onlineStatus := true
+	ms.SetUserOnlineStatus(&onlineStatus, token)
 	username := request.PathParameter("username")
 	user, err := ms.GetUserWithUsername(username)
 
@@ -265,10 +265,10 @@ func (ms *MessagingService) getAllUsers(request *restful.Request, response *rest
 	if !isRequestAndAuthTokenValid(request, response, ms) {
 		return
 	}
-	//token := request.Request.Header.Get("Authorization")
-	//ms.UpdateUserLastSeenTime(token)
-	//onlineStatus := true
-	//ms.SetUserOnlineStatus(&onlineStatus, token)
+	token := request.Request.Header.Get("Authorization")
+	ms.UpdateUserLastSeenTime(token)
+	onlineStatus := true
+	ms.SetUserOnlineStatus(&onlineStatus, token)
 	users := ms.GetAllOnlineUsers()
 	usersJSON, err := json.Marshal(users)
 
@@ -290,9 +290,7 @@ func closeSessionForInactiveUsers(ur user.UserRepository) {
 		for k, v := range usersMap {
 			if currentTime-v.LastSeenTime.Unix() > 10 && v.OnlineStatus != nil {
 				fmt.Println("inside the inner loop!")
-				userUpdated := v
-				userUpdated.OnlineStatus = nil
-				usersMap[k] = userUpdated
+				ur.SetUserOnlineStatus(nil, k)
 			}
 		}
 	}
