@@ -34,6 +34,7 @@ type UserRepository interface {
 	RemoveUser(authToken string) (Message, error)
 	GetAllUsers() []User
 	GetUserMap() map[string]User
+	GetMutex() *sync.Mutex
 }
 
 type UserResource struct {
@@ -43,6 +44,10 @@ type UserResource struct {
 
 func (ur *UserResource) GetUserMap() map[string]User {
 	return ur.users
+}
+
+func (ur *UserResource) GetMutex() *sync.Mutex {
+	return &ur.mu
 }
 
 func (ur *UserResource) SetUserOnlineStatus(onlineStatus *bool, authToken string) {
@@ -121,7 +126,9 @@ func (ur *UserResource) AddUser(username string) (User, error) {
 	onlineStatus := new(bool)
 	*onlineStatus = true
 	newUser := User{id, username, onlineStatus, time.Now()}
-	ur.users[id] = newUser
+	ur.mu.Lock()
+	ur.users[id] = newUser // here
+	ur.mu.Unlock()
 	return newUser, nil
 
 }

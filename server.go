@@ -283,16 +283,18 @@ func (ms *MessagingService) getAllUsers(request *restful.Request, response *rest
 }
 
 func closeSessionForInactiveUsers(ur user.UserRepository) {
+	mu := ur.GetMutex()
 	for {
 		usersMap := ur.GetUserMap()
 		currentTime := time.Now().Unix()
-
-		for k, v := range usersMap {
-			if currentTime-v.LastSeenTime.Unix() > 10 && v.OnlineStatus != nil {
+		mu.Lock()
+		for k, v := range usersMap { // here
+			if currentTime-v.LastSeenTime.Unix() > 7 && v.OnlineStatus != nil {
 				fmt.Println("inside the inner loop!")
 				ur.SetUserOnlineStatus(nil, k)
 			}
 		}
+		mu.Unlock()
 	}
 }
 
