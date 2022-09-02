@@ -2,7 +2,6 @@ package user
 
 import (
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"sync"
 	"time"
@@ -52,31 +51,25 @@ func (ur *UserResource) GetMutex() *sync.Mutex {
 }
 
 func (ur *UserResource) SetUserOnlineStatus(onlineStatus *bool, authToken string) {
-	fmt.Println("Before lock in SetUserOnlineStatus ...")
 	ur.mu.Lock()
-	fmt.Println("Lock in SetUserOnlineStatus")
 	userUpdated := ur.users[authToken]
 	userUpdated.OnlineStatus = onlineStatus
 	ur.users[authToken] = userUpdated
 	ur.mu.Unlock()
-	fmt.Println("Unlock in SetUserOnlineStatus")
 }
 
 func (ur *UserResource) UpdateUserLastSeenTime(authToken string) {
-	ur.mu.Lock()
 	userUpdated := ur.users[authToken]
 	userUpdated.LastSeenTime = time.Now()
+	ur.mu.Lock()
 	ur.users[authToken] = userUpdated
 	ur.mu.Unlock()
 }
 
 func (ur *UserResource) DoesAuthTokenExist(authToken string) bool {
-	fmt.Println("Before lock in DoesAuthTokenExist ...")
 	ur.mu.Lock()
-	fmt.Println("Locked mutex in DoesAuthTokenExist ...")
 	_, ok := ur.users[authToken]
 	ur.mu.Unlock()
-	fmt.Println("Unlocked mutex in DoesAuthTokenExist ...")
 	if ok {
 		return true
 	}

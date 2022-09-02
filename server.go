@@ -70,7 +70,7 @@ func isRequestAndAuthTokenValid(request *restful.Request, response *restful.Resp
 		response.WriteError(http.StatusUnauthorized, err)
 		return false
 	}
-	fmt.Println("Inside isRequestAndAuthTokenValid")
+
 	if !ms.DoesAuthTokenExist(token) {
 		err = fmt.Errorf("auth token does not exist: %w", err)
 		log.Println(err)
@@ -262,7 +262,6 @@ func (ms *MessagingService) getUser(request *restful.Request, response *restful.
 }
 
 func (ms *MessagingService) getAllUsers(request *restful.Request, response *restful.Response) {
-	fmt.Println("Get All Users!!!")
 	if !isRequestAndAuthTokenValid(request, response, ms) {
 		return
 	}
