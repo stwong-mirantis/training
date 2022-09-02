@@ -12,7 +12,7 @@ pipeline {
         string(name: 'VERSION', defaultValue: '', description: 'Version of the application')
     }
 
-    agent { label 'pod && linux && arm64' }
+    agent { label 'pod && linux && amd64' }
     stages {
         stage('Test') {
             steps {
