@@ -304,7 +304,7 @@ func main() {
 	mr := message.NewMessageResource()
 	messagingService := NewMessagingService(ur, mr)
 	restful.DefaultContainer.Add(messagingService.WebService)
-	go closeSessionForInactiveUsers(ur)
+	//go closeSessionForInactiveUsers(ur)
 	log.Printf("start listening on localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
