@@ -137,11 +137,11 @@ func (ur *UserResource) AddUser(username string) (User, error) {
 
 func (ur *UserResource) RemoveUser(authToken string) (Message, error) {
 	ur.mu.Lock()
+	defer ur.mu.Unlock()
 	if _, ok := ur.users[authToken]; ok {
 		delete(ur.users, authToken)
 		return Message{Message: "bye!"}, nil
 	}
-	ur.mu.Unlock()
 	return Message{}, ErrUsernameDoesNotExist
 }
 
