@@ -1,5 +1,4 @@
 #!groovy
-
 dockerhubCred = [
     $class: 'UsernamePasswordMultiBinding',
     usernameVariable: 'DOCKERHUB_USERNAME',
@@ -27,7 +26,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh "${pwd}/build.sh ${params.VERSION}"
+                sh "build.sh ${params.VERSION}"
             }
         }
 
