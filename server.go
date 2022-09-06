@@ -291,12 +291,11 @@ func closeSessionForInactiveUsers(ur user.UserRepository) {
 		for k, v := range usersMap { // here
 			if currentTime-v.LastSeenTime.Unix() > 10 && v.OnlineStatus != nil {
 				fmt.Println("inside the inner loop!")
-				ur.SetUserOnlineStatus(nil, k)
+				ur.SetUserOnlineStatusNoLock(nil, k)
 			}
 		}
 		mu.Unlock()
 	}
-	time.Sleep(10 * time.Second)
 }
 
 func main() {
@@ -304,7 +303,7 @@ func main() {
 	mr := message.NewMessageResource()
 	messagingService := NewMessagingService(ur, mr)
 	restful.DefaultContainer.Add(messagingService.WebService)
-	//go closeSessionForInactiveUsers(ur)
+	go closeSessionForInactiveUsers(ur)
 	log.Printf("start listening on localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

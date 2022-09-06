@@ -25,6 +25,7 @@ type Message struct {
 
 type UserRepository interface {
 	SetUserOnlineStatus(onlineStatus *bool, authToken string)
+	SetUserOnlineStatusNoLock(onlineStatus *bool, authToken string) // ugly code but it works!
 	UpdateUserLastSeenTime(authToken string)
 	DoesAuthTokenExist(authToken string) bool
 	GetAllOnlineUsers() []User
@@ -58,6 +59,12 @@ func (ur *UserResource) SetUserOnlineStatus(onlineStatus *bool, authToken string
 	ur.mu.Unlock()
 }
 
+func (ur *UserResource) SetUserOnlineStatusNoLock(onlineStatus *bool, authToken string) {
+	userUpdated := ur.users[authToken]
+	userUpdated.OnlineStatus = onlineStatus
+	ur.users[authToken] = userUpdated
+}
+
 func (ur *UserResource) UpdateUserLastSeenTime(authToken string) {
 	userUpdated := ur.users[authToken]
 	userUpdated.LastSeenTime = time.Now()
@@ -70,10 +77,7 @@ func (ur *UserResource) DoesAuthTokenExist(authToken string) bool {
 	ur.mu.Lock()
 	_, ok := ur.users[authToken]
 	ur.mu.Unlock()
-	if ok {
-		return true
-	}
-	return false
+	return ok
 }
 
 func (ur *UserResource) GetAllOnlineUsers() []User {
@@ -118,19 +122,19 @@ func (ur *UserResource) GetUserWithToken(token string) User {
 
 func (ur *UserResource) AddUser(username string) (User, error) {
 	ur.mu.Lock()
+	defer ur.mu.Unlock()
 	for _, v := range ur.users {
 		if username == v.Username {
 			return User{}, ErrUsernameAlreadyInUse
 		}
 	}
-	ur.mu.Unlock()
+
 	id := uuid.New().String()
 	onlineStatus := new(bool)
 	*onlineStatus = true
 	newUser := User{id, username, onlineStatus, time.Now()}
-	ur.mu.Lock()
 	ur.users[id] = newUser // here
-	ur.mu.Unlock()
+
 	return newUser, nil
 
 }
