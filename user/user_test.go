@@ -7,6 +7,27 @@ import (
 	"testing"
 )
 
+func TestUserResource_DoesAuthTokenExist(t *testing.T) {
+	ur := NewUserResource()
+	assert.Equal(t, ur.DoesAuthTokenExist("token-hi"), false)
+	username := "julip"
+	user, err := ur.AddUser(username)
+	require.NoError(t, err)
+	assert.Equal(t, ur.DoesAuthTokenExist(user.UUID), true)
+}
+
+func TestUserResource_SetUserOnlineStatus(t *testing.T) {
+	ur := NewUserResource()
+	assert.Equal(t, ur.DoesAuthTokenExist("token-hi"), false)
+	username := "julip"
+	user, err := ur.AddUser(username)
+	require.NoError(t, err)
+	onlineStatus := false
+	ur.SetUserOnlineStatusNoLock(&onlineStatus, user.UUID)
+	user2 := ur.GetUserWithToken(user.UUID)
+	assert.Equal(t, user2.OnlineStatus, &onlineStatus)
+}
+
 func TestUserResource_RemoveUser(t *testing.T) {
 	ur := NewUserResource()
 	username := "julip"
@@ -19,6 +40,18 @@ func TestUserResource_RemoveUser(t *testing.T) {
 	onlineUsersAfter := ur.GetAllOnlineUsers()
 	assert.Equal(t, ur.DoesAuthTokenExist(expectedUser.UUID), false, "user exists should be false")
 	require.Len(t, onlineUsersAfter, 0)
+}
+
+func TestUserResource_UpdateUserLastSeenTime(t *testing.T) {
+	ur := NewUserResource()
+	username := "julip"
+	user, err := ur.AddUser(username)
+	initialTime := user.LastSeenTime
+	require.NoError(t, err)
+	ur.UpdateUserLastSeenTime(user.UUID)
+	user2, err := ur.GetUserWithUsername(username)
+	require.NoError(t, err)
+	assert.NotEqual(t, initialTime, user2.LastSeenTime)
 }
 
 func TestUserResource_GetUserWithUsername(t *testing.T) {
