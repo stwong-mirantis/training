@@ -74,9 +74,9 @@ func (ur *UserResource) UpdateUserLastSeenTime(authToken string) {
 }
 
 func (ur *UserResource) DoesAuthTokenExist(authToken string) bool {
-	//ur.mu.Lock() // here
+	ur.mu.Lock()
 	_, ok := ur.users[authToken]
-	//ur.mu.Unlock()
+	ur.mu.Unlock()
 	return ok
 }
 
