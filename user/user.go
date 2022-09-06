@@ -66,17 +66,17 @@ func (ur *UserResource) SetUserOnlineStatusNoLock(onlineStatus *bool, authToken 
 }
 
 func (ur *UserResource) UpdateUserLastSeenTime(authToken string) {
+	ur.mu.Lock()
 	userUpdated := ur.users[authToken]
 	userUpdated.LastSeenTime = time.Now()
-	ur.mu.Lock()
 	ur.users[authToken] = userUpdated
 	ur.mu.Unlock()
 }
 
 func (ur *UserResource) DoesAuthTokenExist(authToken string) bool {
-	ur.mu.Lock()
+	//ur.mu.Lock() // here
 	_, ok := ur.users[authToken]
-	ur.mu.Unlock()
+	//ur.mu.Unlock()
 	return ok
 }
 
@@ -104,12 +104,12 @@ func (ur *UserResource) GetAllUsers() []User {
 
 func (ur *UserResource) GetUserWithUsername(username string) (User, error) {
 	ur.mu.Lock()
+	defer ur.mu.Unlock()
 	for _, v := range ur.users {
 		if v.Username == username {
 			return v, nil
 		}
 	}
-	ur.mu.Unlock()
 	return User{}, ErrUsernameDoesNotExist
 }
 
@@ -136,7 +136,6 @@ func (ur *UserResource) AddUser(username string) (User, error) {
 	ur.users[id] = newUser // here
 
 	return newUser, nil
-
 }
 
 func (ur *UserResource) RemoveUser(authToken string) (Message, error) {

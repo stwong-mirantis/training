@@ -287,8 +287,8 @@ func closeSessionForInactiveUsers(ur user.UserRepository) {
 		mu := ur.GetMutex()
 		usersMap := ur.GetUserMap()
 		currentTime := time.Now().Unix()
-		mu.Lock()
-		for k, v := range usersMap { // here
+		mu.Lock() // here
+		for k, v := range usersMap {
 			if currentTime-v.LastSeenTime.Unix() > 10 && v.OnlineStatus != nil {
 				fmt.Println("inside the inner loop!")
 				ur.SetUserOnlineStatusNoLock(nil, k)
