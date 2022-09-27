@@ -8,4 +8,4 @@ GOLANG_ALPINE=golang:${GOLANG_VER}-alpine${ALPINE_VER}
 
 echo "Building..."
 
-docker build --build-arg ALPINE=$ALPINE --build-arg GOLANG_ALPINE=$GOLANG_ALPINE -t "messaging-server:$TAG" .
+docker build --build-arg ALPINE=$ALPINE --build-arg GOLANG_ALPINE=$GOLANG_ALPINE -t "stwongmirantis/messaging-server:$TAG" .
