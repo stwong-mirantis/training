@@ -26,7 +26,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh "scripts/build.sh ${params.VERSION}"
+                sh "./scripts/build.sh ${params.VERSION}"
             }
         }
 
