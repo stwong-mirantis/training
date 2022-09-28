@@ -3,7 +3,7 @@ dockerhubCred = [
     $class: 'UsernamePasswordMultiBinding',
     usernameVariable: 'DOCKERHUB_USERNAME',
     passwordVariable: 'DOCKERHUB_PASSWORD',
-    credentialsId: 'dshish-dockerhub-up',
+    credentialsId: 'stwong-dockerhub-up',
 ]
 
 pipeline {
